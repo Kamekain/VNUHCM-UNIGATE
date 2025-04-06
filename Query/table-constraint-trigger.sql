@@ -614,3 +614,100 @@ FOR EACH ROW
 WHEN (OLD.ma_truong_thpt IS DISTINCT FROM NEW.ma_truong_thpt OR OLD.truong_thpt_ma_tinh IS DISTINCT FROM NEW.truong_thpt_ma_tinh)
 EXECUTE FUNCTION auto_fill_khu_vuc_uu_tien();
 
+
+-- Xóa nguyện vọng
+CREATE OR REPLACE FUNCTION remove_nv()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE nguyen_vong_xet_tuyen 
+    SET thu_tu_nguyen_vong = thu_tu_nguyen_vong - 1 
+    WHERE cccd = OLD.cccd 
+      AND thu_tu_nguyen_vong > OLD.thu_tu_nguyen_vong;
+
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER nguyen_vong_remove 
+BEFORE DELETE ON nguyen_vong_xet_tuyen
+FOR EACH ROW
+EXECUTE FUNCTION remove_nv();
+
+-- Xử lý thêm hoặc chỉnh thứ tự nguyện vọng
+CREATE OR REPLACE FUNCTION add_update_nv()
+RETURNS TRIGGER AS $$
+DECLARE exist BOOLEAN;
+BEGIN
+	
+	--Kiểm tra xem nguyên vọng được thêm hay chỉnh sửa đã tồn tại hay chưa
+	SELECT EXISTS (SELECT * FROM nguyen_vong_xet_tuyen WHERE NEW.ma_nganh = ma_nganh AND NEW.cccd = cccd) INTO exist;
+
+	IF exist THEN
+		 RAISE EXCEPTION 'Nguyện vọng bị trùng';
+	END IF;
+   
+   --Đảm bảo xóa nguyện vọng cũ nếu update
+    IF TG_OP = 'UPDATE' THEN
+        DELETE FROM nguyen_vong_xet_tuyen
+        WHERE cccd = OLD.cccd 
+          AND thu_tu_nguyen_vong = OLD.thu_tu_nguyen_vong;
+    END IF;
+
+	--Hạ bậc của các nguyện vọng từ nó trở xuống
+    UPDATE nguyen_vong_xet_tuyen
+    SET thu_tu_nguyen_vong = thu_tu_nguyen_vong + 1
+    WHERE cccd = NEW.cccd 
+      AND thu_tu_nguyen_vong >= NEW.thu_tu_nguyen_vong;
+
+	   INSERT INTO nguyen_vong_xet_tuyen (cccd, ma_nganh, thu_tu_nguyen_vong)
+	   VALUES (NEW.cccd, NEW.ma_nganh, NEW.thu_tu_nguyen_vong);
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER nguyen_vong_add
+BEFORE INSERT OR UPDATE ON nguyen_vong_xet_tuyen
+FOR EACH ROW
+EXECUTE FUNCTION add_update_nv();
+
+--Trigger đảm bảo khi xóa hồ sơ xét tuyển, tất cả nguyện vọng bị xóa theo
+CREATE OR REPLACE FUNCTION xoa_ho_so_xt_TG()
+RETURNS TRIGGER AS $$
+	
+BEGIN
+	DELETE FROM nguyen_vong_xet_tuyen
+	WHERE ma_ho_so_xet_tuyen = OLD.ma_ho_so_xet_tuyen;
+
+	RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER xoa_ho_so
+BEFORE DELETE ON ho_so_xet_tuyen
+FOR EACH ROW
+EXECUTE FUNCTION xoa_ho_so_xt_TG();
+
+
+--Trigger đảm bảo thí sinh không bị trùng
+CREATE OR REPLACE FUNCTION them_thi_sinh_TG()
+RETURNS TRIGGER AS $$
+DECLARE 
+	exist BOOLEAN;
+BEGIN
+	SELECT EXISTS(
+		SELECT 1 FROM thi_sinh WHERE cccd = NEW.cccd
+	) INTO exist;
+
+	IF exist THEN
+		RAISE EXCEPTION 'Thí sinh với CCCD % đã tồn tại!', NEW.cccd;
+	END IF;
+
+	RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER them_thi_sinh
+BEFORE INSERT OR UPDATE ON thi_sinh
+FOR EACH ROW
+EXECUTE FUNCTION them_thi_sinh_TG();
