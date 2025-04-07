@@ -69,7 +69,7 @@ CREATE TABLE ket_qua_thi (
 
 
 -- 2.3 Bảng ho_so_xet_tuyen: Lưu hồ sơ đăng ký xét tuyển của thí sinh
-CREATE TABLE select * from ho_so_xet_tuyen where (khu_vuc_uu_tien ='2') (
+CREATE TABLE ho_so_xet_tuyen (
     ma_ho_so_xet_tuyen char(10) PRIMARY KEY, -- Khóa chính: Mã hồ sơ xét tuyển
     cccd char(12) NOT NULL UNIQUE,       -- Khóa ngoại tới thi_sinh, UNIQUE để đảm bảo mỗi TS chỉ có 1 HSXT
     diem_thi int,                      -- Điểm thi ĐGNL cao nhất dùng để xét (lấy từ ket_qua_thi)
@@ -80,7 +80,7 @@ CREATE TABLE select * from ho_so_xet_tuyen where (khu_vuc_uu_tien ='2') (
 );
 
 -- 3.1 Bảng nganh_dao_tao_dai_hoc: Lưu thông tin các ngành đào tạo
-CREATE TABLE select * from nganh_dao_tao_dai_hoc (
+CREATE TABLE nganh_dao_tao_dai_hoc (
     ma_nganh varchar(30) PRIMARY KEY,   -- Khóa chính: Mã ngành đào tạo
     ten_nganh varchar(100) NOT NULL,  -- Tên ngành đào tạo
     ma_truong_khoa char(3),           -- Mã trường/khoa quản lý ngành
