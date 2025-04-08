@@ -159,9 +159,8 @@ CREATE TABLE cac_khuyen_nghi_nganh_hoc (
 ALTER TABLE thi_sinh
 ADD CONSTRAINT fk_thisinh_truongthpt FOREIGN KEY (ma_truong_thpt) REFERENCES truong_thpt(ma_truong);
 
--- Ràng buộc cho bảng tai_khoan_thi_sinh
-ALTER TABLE tai_khoan_thi_sinh
-ADD CONSTRAINT fk_taikhoan_thisinh FOREIGN KEY (cccd) REFERENCES thi_sinh(cccd) ON DELETE CASCADE;
+ALTER TABLE thi_sinh
+ADD CONSTRAINT fk_taikhoan_thisinh FOREIGN KEY (cccd) REFERENCES tai_khoan_thi_sinh(cccd) ON DELETE CASCADE;
 
 -- Ràng buộc cho bảng ho_so_du_thi
 ALTER TABLE ho_so_du_thi
